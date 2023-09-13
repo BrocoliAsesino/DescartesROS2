@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>descartes_core</name>
+  <version>0.0.1</version>
+  <description>The descartes_core package creates joint trajectories for trajectory plans. Trajectory plans are typically underdefined paths through space that allow for kinematic/dynamic tolerances, such as unspecified tool roll.</description>
+
+  <maintainer email="jnicho@swri.org">Jorge Nicho</maintainer>
+  <maintainer email="jonathan.meyer@swri.org">Jonathan Meyer</maintainer>
+  <maintainer email="sedwards@swri.org">Shaun Edwards</maintainer>
+
+  <license>Apache2.0</license>
+  <url type="website">https://github.com/industrial-moveit/descartes_core</url>
+
+  <author email="dpsolomon@gmail.com">Dan Solomon</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- <depend>boost</depend> -->
+  <depend>moveit_core</depend>
+  <depend>rclcpp</depend>
+  <depend>cmake_modules</depend>
+  <depend>eigen</depend>
+
+  <!-- Additional dependencies and other tags can be added as needed -->
+
+</package>
+
