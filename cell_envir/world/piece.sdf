@@ -1,0 +1,16 @@
+<sdf version="1.6">
+  <model name="piece">
+    <pose>1.075718 0.25 0.86 -1.5707896 0.0 0.0</pose>  
+    <static>true</static>
+    <link name="link">
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>file:///home/agonzalezhernandez/temp_ws/src/cell_envir/urdf/piece_description/part1_updated.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

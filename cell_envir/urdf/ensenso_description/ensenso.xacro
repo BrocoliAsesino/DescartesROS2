@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot name="ensenso_camera" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  
+
+  <material name="Ensenso/Blue">
+    <color rgba="0.1 0.1 1.0 1.0"/>
+  </material>
+  
+  <material name="Ensenso/Black">
+    <color rgba="0.0 0.0 0.0 1.0"/>
+  </material>
+
+  <xacro:macro name="ensenso_X200_Series" params="name margin:=0.03">
+    <xacro:include filename="inertia_description/inertia_table.xacro"/>
+    <link name="${name}">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="file:///$(find cell_envir)/urdf/ensenso_description/stl_meshes/X3x-5CP-200.stl"/>
+        </geometry>
+        <material name="Ensenso/Blue"/>
+      </visual>
+      <collision>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 ${0.033+0.05/2}"/>
+        <geometry>
+          <!-- <box size="${margin+0.24350} ${margin+0.066} ${margin+0.08+0.05}"/> -->
+          <box size="${margin+0.12} ${margin+0.066} ${margin+0.08+0.05}"/>
+        </geometry>
+      </collision>
+      <inertial>
+          <xacro:box_inertia m="1" x="0.3" y="0.1" z="0.2"/>
+      </inertial>
+
+    </link>
+
+    <!-- Left lens -->
+    <joint name="${name}_left_lens_joint" type="fixed">
+      <parent link="${name}"/>
+      <child link="${name}_left_lens_frame"/>
+      <origin xyz="-0.113 0.0 0.063" rpy="0 0 0"/>
+    </joint>
+    
+    <link name="${name}_left_lens_frame"/>
+    
+  </xacro:macro>
+
+</robot>
