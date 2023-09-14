@@ -58,7 +58,7 @@ struct TimingConstraint
   {
     if (nominal < 0.0)
     {
-      RRCLCPP_WARN(rclcpp::get_logger("descartes_core"),"Nominal time value must be greater than or equal to 0.0");
+      RCLCPP_WARN(rclcpp::get_logger("descartes_core"),"Nominal time value must be greater than or equal to 0.0");
       lower = 0.0;
       upper = 0.0;
     }

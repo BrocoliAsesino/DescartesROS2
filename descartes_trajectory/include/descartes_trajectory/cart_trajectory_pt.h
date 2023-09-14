@@ -31,8 +31,8 @@
 #include <rclcpp/logging.hpp>
 
 
-typedef boost::shared_ptr<kinematic_constraints::PositionConstraint> PositionConstraintPtr;
-typedef boost::shared_ptr<kinematic_constraints::OrientationConstraint> OrientationConstraintPtr;
+typedef std::shared_ptr<kinematic_constraints::PositionConstraint> PositionConstraintPtr;
+typedef std::shared_ptr<kinematic_constraints::OrientationConstraint> OrientationConstraintPtr;
 
 namespace descartes_trajectory
 {
@@ -41,7 +41,7 @@ namespace descartes_trajectory
   tolerances.
  */
 
- auto logger = rclcpp::get_logger("descartes_core")
+auto logger = rclcpp::get_logger("descartes_core");
 struct ToleranceBase
 {
   /**
