@@ -41,7 +41,7 @@
 namespace descartes_moveit
 {
 
-auto logger = rclcpp::get_logger("descartes_moveit2");
+auto logger2 = rclcpp::get_logger("descartes_moveit2");
 namespace seed
 {
 /**

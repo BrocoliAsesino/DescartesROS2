@@ -5,12 +5,19 @@ project(descartes_moveit)
 add_compile_options(-std=c++17 -Wall -Wextra)
 
 # Find required packages
+find_package(descartes_trajectory REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(descartes_core REQUIRED)
-find_package(descartes_trajectory REQUIRED)
 find_package(moveit_core REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+
+
+ament_auto_find_build_dependencies()
+#ament_auto_include_directories()
+
+
 
 # Include directories
 include_directories(
@@ -18,6 +25,8 @@ include_directories(
   #${Boost_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
   ${descartes_trajectory_INCLUDE_DIRS}
+  /home/agonzalezhernandez/descartesROS2_ws/install/descartes_trajectory/include
+
 )
 
 # Descartes MoveIt library
@@ -32,6 +41,9 @@ ament_target_dependencies(${PROJECT_NAME}
   moveit_core
 )
 
+target_link_libraries(${PROJECT_NAME}
+  descartes_trajectory
+ )
 # Install targets
 install(
   TARGETS ${PROJECT_NAME}

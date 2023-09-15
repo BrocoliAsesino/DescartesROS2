@@ -20,7 +20,8 @@
 #define MOVEIT_STATE_ADAPTER_H_
 
 #include "descartes_core/robot_model.h"
-#include "descartes_trajectory/cart_trajectory_pt.h"
+// #include "descartes_trajectory/cart_trajectory_pt.h"
+#include <descartes_trajectory/cart_trajectory_pt.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
@@ -44,10 +45,15 @@ public:
   {
   }
 
-  virtual bool initialize(const std::string &robot_description, const std::string &group_name,
+  virtual bool initialize(const rclcpp::Node::SharedPtr& node, const std::string &robot_description, const std::string &group_name,
                           const std::string &world_frame, const std::string &tcp_frame);
 
-  virtual bool initialize(robot_model::RobotModelConstPtr robot_model, const std::string &group_name,
+  // virtual bool initialize(RobotModel::RobotModelConstPtr robot_model, const std::string &group_name,
+  //                         const std::string &world_frame, const std::string &tcp_frame);
+
+
+  // NOTE : there seems to be a clash between moveit s RobotModel and Descartes::Core's
+  virtual bool initialize(moveit::core::RobotModelConstPtr robot_model, const std::string &group_name,
                           const std::string &world_frame, const std::string &tcp_frame);
 
   virtual bool getIK(const Eigen::Isometry3d &pose, const std::vector<double> &seed_state,
@@ -134,7 +140,8 @@ protected:
 
   planning_scene::PlanningScenePtr planning_scene_;
 
-  robot_model::RobotModelConstPtr robot_model_ptr_;
+  // RobotModel::RobotModelConstPtr robot_model_ptr_;
+  moveit::core::RobotModelConstPtr robot_model_ptr_;
 
   robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
 

@@ -26,8 +26,8 @@
   <build_depend>eigen</build_depend>
 
   <!-- suggest that descartes_core will be looking for plugins -->
-  <export>
+  <!-- <export>
     <descartes_core plugin="${prefix}/moveit_adapter_plugins.xml"/>
     <rosdoc config="rosdoc.yaml"/>
-  </export>
+  </export> -->
 </package>
