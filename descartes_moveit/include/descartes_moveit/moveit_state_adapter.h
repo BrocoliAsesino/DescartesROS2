@@ -32,7 +32,8 @@ namespace descartes_moveit
 {
 
 // the logger is a global variable within the descartes_moveit namespace
-auto logger = rclcpp::get_logger("descartes_moveit");
+extern rclcpp::Logger logger;
+
 /**
  * @brief MoveitStateAdapter adapts the MoveIt RobotState to the Descartes RobotModel interface
  */
@@ -45,14 +46,24 @@ public:
   {
   }
 
-  virtual bool initialize(const rclcpp::Node::SharedPtr& node, const std::string &robot_description, const std::string &group_name,
+// ======================================================================================================================================
+//   We keep this method since it has the same signature than the one in the base class RobotModel. Cannot remove since the class inherits
+//   from RobotModel and in there the initialize method is pure virtual, removing it would make this class abstract.
+
+  virtual bool initialize(const std::string &robot_description, const std::string &group_name,
                           const std::string &world_frame, const std::string &tcp_frame);
 
-  // virtual bool initialize(RobotModel::RobotModelConstPtr robot_model, const std::string &group_name,
-  //                         const std::string &world_frame, const std::string &tcp_frame);
 
+// ======================================================================================================================================
+//   New initialize method to include the pointer to a rclcpp::Node so that the RobotModelLoader works. In Moveit2 the RobotModelLoader               
+//   takes an extra parameter (rclcpp::Node) to load the robot model than it did in Moveit. Implemented in MoveitStateAdapter.
+//   This method is overridden since it was implemented in the base class RobotModel. 
+  virtual bool initialize(const rclcpp::Node::SharedPtr& node, const std::string &robot_description, const std::string &group_name,
+                          const std::string &world_frame, const std::string &tcp_frame) override;
+// ======================================================================================================================================
 
-  // NOTE : there seems to be a clash between moveit s RobotModel and Descartes::Core's
+  // Alex:
+  // NOTE : there seems to be a clash between moveit s RobotModel and Descartes::Core's - careful they are different 
   virtual bool initialize(moveit::core::RobotModelConstPtr robot_model, const std::string &group_name,
                           const std::string &world_frame, const std::string &tcp_frame);
 
@@ -105,6 +116,45 @@ public:
    *        'initialize()'.
    */
   void setState(const moveit::core::RobotState &state);
+
+
+
+
+  /**
+   * @brief ----------------------------------------------------- MORE MODIFS ----------------------------------------------------------------------
+   * Added to be able to retrieve the attributes and be used in the CustomCostFunction
+   */
+  moveit::core::RobotStatePtr getRobotState() const
+    {
+        return robot_state_;
+    }
+
+  moveit::core::RobotModelConstPtr getRobotModel() const
+  {
+      return robot_model_ptr_;
+  }
+
+  std::vector<double> getVelocityLimits() const
+  {
+      return velocity_limits_;
+  }
+
+  // first const -> since the function returns a constant value or a pointer to a constant
+  // second const -> indicates that they will not modify the const object they are called at, in this case, IT INDICATES THAT THE MoveitStateAdapter OBJECT
+  //                  WILL NOT BE MODIFIED BY THIS FUNCTION
+
+  const moveit::core::JointModelGroup* getJointModelGroup() const
+  {
+      return joint_group_;
+  }
+
+  planning_scene::PlanningScenePtr getPlanningScene() const 
+  {
+    return planning_scene_;
+  }
+
+
+
 
 protected:
   /**

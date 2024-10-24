@@ -67,9 +67,36 @@ bool getJointVelocityLimits(const moveit::core::RobotState& state, const std::st
 
 namespace descartes_moveit
 {
+
+rclcpp::Logger logger = rclcpp::get_logger("moveit_state_adapter");
+
 MoveitStateAdapter::MoveitStateAdapter() : world_to_root_(Eigen::Isometry3d::Identity())
 {
 }
+
+// ======================================================================================================================================
+//   We keep this method since it has the same signature than the one in the base class RobotModel. Cannot remove since the class inherits
+//   from RobotModel and in there the initialize method is pure virtual, removing it would make this class abstract.
+
+bool MoveitStateAdapter::initialize(const std::string& /*robot_description*/, const std::string& /*group_name*/,
+                                    const std::string& /*world_frame*/, const std::string& /*tcp_frame*/)
+{
+  // // Initialize MoveIt state objects
+  // robot_model_loader_.reset(new robot_model_loader::RobotModelLoader(robot_description));
+  // auto model = robot_model_loader_->getModel();
+  // if (!model)
+  // {
+  //   RCLCPP_ERROR(logger,"Failed to load robot model from robot description parameter: %s", robot_description.c_str());
+  //   return false;
+  // }
+
+  // return initialize(model, group_name, world_frame, tcp_frame);
+  return true;
+}
+
+// ======================================================================================================================================
+//   New initialize method to include the pointer to a rclcpp::Node so that the RobotModelLoader works. In Moveit2 the RobotModelLoader               
+//   takes an extra parameter (rclcpp::Node) to load the robot model than it did in Moveit. 
 
 bool MoveitStateAdapter::initialize(const rclcpp::Node::SharedPtr& node, const std::string& robot_description, const std::string& group_name,
                                     const std::string& world_frame, const std::string& tcp_frame)
@@ -79,65 +106,91 @@ bool MoveitStateAdapter::initialize(const rclcpp::Node::SharedPtr& node, const s
   auto model = robot_model_loader_->getModel();
   if (!model)
   {
-    CONSOLE_BRIDGE_logError("Failed to load robot model from robot description parameter: %s", robot_description.c_str());
+    RCLCPP_ERROR(rclcpp::get_logger("moveit_state_adapter"), "Failed to load robot model from robot description parameter: %s", robot_description.c_str());
     return false;
   }
 
   return initialize(model, group_name, world_frame, tcp_frame);
 }
+// ======================================================================================================================================
 
 bool MoveitStateAdapter::initialize(moveit::core::RobotModelConstPtr robot_model, const std::string &group_name,
                                     const std::string &world_frame, const std::string &tcp_frame)
 {
   robot_model_ptr_ = robot_model;
+  
+
   robot_state_.reset(new moveit::core::RobotState(robot_model_ptr_));
   robot_state_->setToDefaultValues();
   planning_scene_.reset(new planning_scene::PlanningScene(robot_model));
   joint_group_ = robot_model_ptr_->getJointModelGroup(group_name);
+
+// NEW: to store it in descartes' robot_model (the base class of this class) and have access to it in the CustomEdgesWithTime builder in the planning_graph 
+  moveit_robot_model_ = robot_model;
+  robot_model_joint_group_ = joint_group_;
 
   // Assign robot frames
   group_name_ = group_name;
   tool_frame_ = tcp_frame;
   world_frame_ = world_frame;
 
+  // More debugging messages
+  RCLCPP_INFO(logger,"Group name set to: %s", group_name_.c_str());
+  RCLCPP_INFO(logger,"Tool frame set to: %s", tool_frame_.c_str());
+  RCLCPP_INFO(logger,"World frame set to: %s", world_frame_.c_str());
+
   // Validate our model inputs w/ URDF
   if (!joint_group_)
   {
-    CONSOLE_BRIDGE_logError("%s: Joint group '%s' does not exist in robot model", __FUNCTION__, group_name_.c_str());
+    RCLCPP_ERROR(logger,"%s: Joint group '%s' does not exist in robot model", __FUNCTION__, group_name_.c_str());
     std::stringstream msg;
 
     msg << "Possible group names: ";
     for (const auto& name : robot_state_->getRobotModel()->getJointModelGroupNames())
       msg << name << ", ";
-    CONSOLE_BRIDGE_logError(msg.str().c_str());
+    RCLCPP_ERROR(logger,msg.str().c_str());
 
     return false;
   }
 
   const auto& link_names = joint_group_->getLinkModelNames();
+ 
+  // if (tool_frame_ != link_names.back())
+  // {
+  //   RCLCPP_ERROR(logger,"%s: Tool frame '%s' does not match group tool frame '%s', functionality"
+  //            " will be implemented in the future",
+  //            __FUNCTION__, tool_frame_.c_str(), link_names.back().c_str());
+  //   return false;
+  // }
+  
   if (tool_frame_ != link_names.back())
+  // {
+  //   RCLCPP_ERROR(logger,"%s: Tool frame '%s' does not match group tool frame '%s', functionality"
+  //            " will be implemented in the future NOT AN ISSUE THO - ALEX SAYS",
+  //            __FUNCTION__, tool_frame_.c_str(), link_names.back().c_str());
+  // }
   {
-    CONSOLE_BRIDGE_logError("%s: Tool frame '%s' does not match group tool frame '%s', functionality"
-             "will be implemented in the future",
+    RCLCPP_DEBUG(logger,"%s: Tool frame '%s' does not match group tool frame '%s', functionality"
+             " will be implemented in the future NOT AN ISSUE THO - ALEX SAYS - This is part of the issue that arises because of the IKFast"
+             "plugin calculating on its own the transform betwen these two frames, which is also done in the planner",
              __FUNCTION__, tool_frame_.c_str(), link_names.back().c_str());
-    return false;
   }
 
   if (!::getJointVelocityLimits(*robot_state_, group_name, velocity_limits_))
   {
-    CONSOLE_BRIDGE_logWarn("%s: Could not determine velocity limits of RobotModel from MoveIt", __FUNCTION__);
+    RCLCPP_WARN(logger,"%s: Could not determine velocity limits of RobotModel from MoveIt", __FUNCTION__);
   }
 
   if (seed_states_.empty())
   {
     seed_states_ = seed::findRandomSeeds(*robot_state_, group_name_, SAMPLE_ITERATIONS);
-    CONSOLE_BRIDGE_logDebug("Generated %lu random seeds", static_cast<unsigned long>(seed_states_.size()));
+    RCLCPP_DEBUG(logger,"Generated %lu random seeds", static_cast<unsigned long>(seed_states_.size()));
   }
 
   auto model_frame = robot_state_->getRobotModel()->getModelFrame();
   if (world_frame_ != model_frame)
   {
-    CONSOLE_BRIDGE_logInform("%s: World frame '%s' does not match model root frame '%s', all poses will be"
+    RCLCPP_DEBUG(logger,"%s: World frame '%s' does not match model root frame '%s', all poses will be"
               " transformed to world frame '%s'",
               __FUNCTION__, world_frame_.c_str(), model_frame.c_str(), world_frame_.c_str());
 
@@ -162,12 +215,14 @@ bool MoveitStateAdapter::getIK(const Eigen::Isometry3d& pose, std::vector<double
   // transform to group base
   Eigen::Isometry3d tool_pose = world_to_root_.frame * pose;
 
+  // std::cout << "WORLD TO ROOT  =  " << world_to_root_.frame.matrix() << std::endl << std::flush;
+
   if (robot_state_->setFromIK(joint_group_, tool_pose, tool_frame_))
   {
     robot_state_->copyJointGroupPositions(group_name_, joint_pose);
     if (!isValid(joint_pose))
     {
-      RCLCPP_ERROR(descartes_moveit::logger, "Robot joint pose is invalid");
+      RCLCPP_DEBUG(rclcpp::get_logger("descartes_moveit"), "Robot joint pose is invalid");
     }
     else
     {
@@ -189,24 +244,25 @@ bool MoveitStateAdapter::getAllIK(const Eigen::Isometry3d& pose, std::vector<std
   // in the middle of a discretization step could be double counted.  In reality, we'd like solutions
   // to be further apart than this.
   double epsilon = 4 * joint_group_->getSolverInstance()->getSearchDiscretization();
-  CONSOLE_BRIDGE_logDebug("Utilizing an min. difference of %f between IK solutions", epsilon);
+  RCLCPP_DEBUG(logger,"Utilizing an min. difference of %f between IK solutions", epsilon);
   joint_poses.clear();
+  
   for (size_t sample_iter = 0; sample_iter < seed_states_.size(); ++sample_iter)
   {
-    robot_state_->setJointGroupPositions(group_name_, seed_states_[sample_iter]);
+    robot_state_->setJointGroupPositions(group_name_, seed_states_[sample_iter]);  //sets the initial joint config (the seed state) that the Ik solver will use as starting point
     std::vector<double> joint_pose;
     if (getIK(pose, joint_pose))
     {
       if (joint_poses.empty())
       {
         std::stringstream msg;
-        CONSOLE_BRIDGE_logDebug(msg.str().c_str());
+        RCLCPP_DEBUG(logger,msg.str().c_str());
         joint_poses.push_back(joint_pose);
       }
       else
       {
         std::stringstream msg;
-        CONSOLE_BRIDGE_logDebug(msg.str().c_str());
+        RCLCPP_DEBUG(logger,msg.str().c_str());
 
         std::vector<std::vector<double> >::iterator joint_pose_it;
         bool match_found = false;
@@ -214,7 +270,7 @@ bool MoveitStateAdapter::getAllIK(const Eigen::Isometry3d& pose, std::vector<std
         {
           if (descartes_core::utils::equal(joint_pose, (*joint_pose_it), epsilon))
           {
-            CONSOLE_BRIDGE_logDebug("Found matching, potential solution is not new");
+            RCLCPP_DEBUG(logger,"Found matching, potential solution is not new");
             match_found = true;
             break;
           }
@@ -222,40 +278,60 @@ bool MoveitStateAdapter::getAllIK(const Eigen::Isometry3d& pose, std::vector<std
         if (!match_found)
         {
           std::stringstream msg;
-          CONSOLE_BRIDGE_logDebug(msg.str().c_str());
+          RCLCPP_DEBUG(logger,msg.str().c_str());
           joint_poses.push_back(joint_pose);
         }
       }
     }
   }
 
-  CONSOLE_BRIDGE_logDebug("Found %lu joint solutions out of %lu iterations", static_cast<unsigned long>(joint_poses.size()),
-           static_cast<unsigned long>(seed_states_.size()));
+  // RCLCPP_DEBUG(rclcpp::get_logger("moveit_state_adapter"), "Found %lu joint solutions out of %lu iterations", static_cast<unsigned long>(joint_poses.size()),
+  //          static_cast<unsigned long>(seed_states_.size()));
 
   if (joint_poses.empty())
   {
-    CONSOLE_BRIDGE_logError("Found 0 joint solutions out of %lu iterations", static_cast<unsigned long>(seed_states_.size()));
+    RCLCPP_DEBUG(rclcpp::get_logger("moveit_state_adapter"), "Found 0 joint solutions out of %lu iterations", static_cast<unsigned long>(seed_states_.size()));
     return false;
   }
   else
   {
-    CONSOLE_BRIDGE_logInform("Found %lu joint solutions out of %lu iterations", static_cast<unsigned long>(joint_poses.size()),
+    RCLCPP_DEBUG(rclcpp::get_logger("moveit_state_adapter"),"Found %lu joint solutions out of %lu iterations", static_cast<unsigned long>(joint_poses.size()),
               static_cast<unsigned long>(seed_states_.size()));
     return true;
   }
 }
 
+bool isInSingularity(moveit::core::RobotState& state, const moveit::core::JointModelGroup* group) 
+{
+
+  const static double MIN_DETERMINANT_VALUE = 0.00001;
+  Eigen::Vector3d reference_point_position(0.0, 0.0, 0.0);
+  Eigen::MatrixXd jacobian;
+  state.getJacobian(group, state.getLinkModel(group->getLinkModelNames().back()), reference_point_position, jacobian);
+
+  return std::abs(jacobian.determinant()) < MIN_DETERMINANT_VALUE;
+
+}
+
 bool MoveitStateAdapter::isInCollision(const std::vector<double>& joint_pose) const
 {
   bool in_collision = false;
+  bool in_singularity = false;
+
   if (check_collisions_)
   {
     moveit::core::RobotState state (robot_model_ptr_);
     state.setToDefaultValues();
     state.setJointGroupPositions(joint_group_, joint_pose);
-    in_collision = planning_scene_->isStateColliding(state, group_name_);
+    state.update();
+    // in_collision = planning_scene_->isStateColliding(state, group_name_);
+    in_collision = planning_scene_->isStateColliding(state);
+    // in_singularity = isInSingularity(state, joint_group_);
   }
+
+  // return in_collision || in_singularity;
   return in_collision;
+
 }
 
 bool MoveitStateAdapter::isInLimits(const std::vector<double> &joint_pose) const
@@ -277,25 +353,26 @@ bool MoveitStateAdapter::getFK(const std::vector<double>& joint_pose, Eigen::Iso
     }
     else
     {
-      CONSOLE_BRIDGE_logError("Robot state does not recognize tool frame: %s", tool_frame_.c_str());
+      RCLCPP_ERROR(logger,"Robot state does not recognize tool frame: %s", tool_frame_.c_str());
       rtn = false;
     }
   }
   else
   {
-    CONSOLE_BRIDGE_logError("Invalid joint pose passed to get forward kinematics");
+    RCLCPP_ERROR(logger,"Invalid joint pose passed to get forward kinematics");
     rtn = false;
   }
 
   return rtn;
 }
 
+// in isInCollision we also check for the singularities -- adds a lot of time to the calculation, commenting for now
 bool MoveitStateAdapter::isValid(const std::vector<double>& joint_pose) const
 {
   // Logical check on input sizes
   if (joint_group_->getActiveJointModels().size() != joint_pose.size())
   {
-    CONSOLE_BRIDGE_logError("Size of joint pose: %lu doesn't match robot state variable size: %lu",
+    RCLCPP_ERROR(logger,"Size of joint pose: %lu doesn't match robot state variable size: %lu",
              static_cast<unsigned long>(joint_pose.size()),
              static_cast<unsigned long>(joint_group_->getActiveJointModels().size()));
     return false;

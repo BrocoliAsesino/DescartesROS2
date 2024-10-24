@@ -1,0 +1,5 @@
+string uuid
+shape_msgs/Mesh mesh_msg
+geometry_msgs/Pose pose
+---
+bool addition_status

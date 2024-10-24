@@ -25,13 +25,16 @@
 #include <rclcpp/logging.hpp>
 #include <Eigen/Core>
 
-/** \def DESCARTES_CLASS_FORWARD
+/* \def DESCARTES_CLASS_FORWARD
     Macro that forward declares a class XXX, and also defines two shared ptrs with named XXXPtr and XXXConstPtr  */
 
-// #define DESCARTES_CLASS_FORWARD(C)                                                                                     \
-//   class C;                                                                                                             \
-//   typedef boost::shared_ptr<C> C##Ptr;                                                                                 \
-//   typedef boost::shared_ptr<const C> C##ConstPtr;
+/*
+ #define DESCARTES_CLASS_FORWARD(C)                                                                                     \
+   class C;                                                                                                             \
+   typedef boost::shared_ptr<C> C##Ptr;                                                                                 \
+   typedef boost::shared_ptr<const C> C##ConstPtr;
+
+*/
 
 #define DESCARTES_CLASS_FORWARD(C)                                                                                     \
   class C;                                                                                                             \

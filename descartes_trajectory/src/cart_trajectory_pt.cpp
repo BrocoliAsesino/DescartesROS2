@@ -25,7 +25,7 @@
 #include <tuple>
 #include <map>
 #include <algorithm>
-// #include <console_bridge/console.h>
+#include <console_bridge/console.h>
 // #include <ros/console.h>
 #include <rclcpp/logging.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -33,23 +33,33 @@
 #include <descartes_core/utils.h>
 
 #define NOT_IMPLEMENTED_ERR(ret)                                      \
-  RCLCPP_ERROR(logger, "%s not implemented", __PRETTY_FUNCTION__);      \
+  RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "%s not implemented", __PRETTY_FUNCTION__);      \
   return ret;
 
 const double EQUALITY_TOLERANCE = 0.0001f;
 
+
 using namespace descartes_core;
+
 
 namespace descartes_trajectory
 {
 EigenSTL::vector_Isometry3d uniform(const TolerancedFrame &frame, const double orient_increment,
                                   const double pos_increment)
 {
+  // std::cout << "Input frame: \n" << frame.frame.matrix() << std::endl;
+  // std::cout << "Orientation increment: " << orient_increment << std::endl;
+  // std::cout << "Position increment: " << pos_increment << std::endl;
+
+  // std::cout << "Input frame.orientation_tolerance.x_lower: \n" << frame.orientation_tolerance.x_lower << std::endl;
+  // std::cout << "Input frame.orientation_tolerance.x_upper: \n" << frame.orientation_tolerance.x_upper << std::endl;
+  // std::cout << "Input frame.position_tolerance.z_lower: \n" << frame.position_tolerance.z_lower << std::endl;
+
   EigenSTL::vector_Isometry3d rtn;
 
   if (pos_increment < 0.0 || orient_increment < 0.0)
   {
-    RCLCPP_WARN(logger, "Negative position/orientation intcrement: %f %f", pos_increment, orient_increment);
+    RCLCPP_WARN(rclcpp::get_logger("cart_trajectory_pt"), "Negative position/orientation intcrement: %f %f", pos_increment, orient_increment);
     rtn.clear();
     return rtn;
   }
@@ -62,6 +72,7 @@ EigenSTL::vector_Isometry3d uniform(const TolerancedFrame &frame, const double o
   if (orient_increment > 0)
   {
     nrx = ((frame.orientation_tolerance.x_upper - frame.orientation_tolerance.x_lower) / orient_increment) + 1;
+    // std::cout << "nrx: " << nrx << std::endl;
     nry = ((frame.orientation_tolerance.y_upper - frame.orientation_tolerance.y_lower) / orient_increment) + 1;
     nrz = ((frame.orientation_tolerance.z_upper - frame.orientation_tolerance.z_lower) / orient_increment) + 1;
   }
@@ -81,10 +92,15 @@ EigenSTL::vector_Isometry3d uniform(const TolerancedFrame &frame, const double o
     ntx = nty = ntz = 1;
   }
 
+  // std::cout << "Number of pose samples (ntx, nty, ntz): " << ntx << ", " << nty << ", " << ntz << std::endl;
+  // std::cout << "Number of orientation samples (nrx, nry, nrz): " << nrx << ", " << nry << ", " << nrz << std::endl;
+
+
   // Estimating the number of samples base on tolerance zones and sampling increment.
   size_t est_num_samples = ntx * nty * ntz * nrx * nry * nrz;
 
-  RCLCPP_DEBUG(logger, "Estimated number of samples: %zu , reserving space", est_num_samples);
+  RCLCPP_INFO(rclcpp::get_logger("cart_trajectory_pt"),  "ntx = %zu, nty = %zu, ntz = %zu, nrx = %zu, nry = %zu, nrz = %zu", ntx, nty, ntz, nrx, nry, nrz);
+  RCLCPP_INFO(rclcpp::get_logger("cart_trajectory_pt"),  "Estimated number of samples: %zu , reserving space", est_num_samples);
   rtn.reserve(est_num_samples);
 
   // TODO: The following for loops do not ensure that the rull range is sample (lower to upper)
@@ -112,12 +128,20 @@ EigenSTL::vector_Isometry3d uniform(const TolerancedFrame &frame, const double o
             {
               tz = frame.position_tolerance.z_lower + pos_increment * nn;
 
-              /*              sampled_frame = Eigen::Translation3d(tx,ty,tz) *
-                                Eigen::AngleAxisd(rx, Eigen::Vector3d::UnitX()) *
-                                Eigen::AngleAxisd(ry, Eigen::Vector3d::UnitY()) *
-                                Eigen::AngleAxisd(rz, Eigen::Vector3d::UnitZ());*/
+              // std::cout << "Sampled frame (before toFrame): \n" << rx <<" "<< ry <<" "<< rz <<" " << tx <<" " << ty <<" " << tz << std::endl;
+
+              // sampled_frame = Eigen::Translation3d(tx,ty,tz) *
+              //     Eigen::AngleAxisd(rx, Eigen::Vector3d::UnitX()) *
+              //     Eigen::AngleAxisd(ry, Eigen::Vector3d::UnitY()) *
+              //     Eigen::AngleAxisd(rz, Eigen::Vector3d::UnitZ());
+              
+              // std::cout << "Sampled frame (before toFrame): \n" << sampled_frame.matrix() << std::endl;
+
+
               sampled_frame =
                   descartes_core::utils::toFrame(tx, ty, tz, rx, ry, rz, descartes_core::utils::EulerConventions::XYZ);
+                  // std::cout << "Generated pose: \n" << sampled_frame.matrix() << std::endl;
+
               rtn.push_back(sampled_frame);
             }
           }
@@ -125,7 +149,7 @@ EigenSTL::vector_Isometry3d uniform(const TolerancedFrame &frame, const double o
       }
     }
   }
-  RCLCPP_DEBUG(logger, "Uniform sampling of frame, utilizing orientation increment: %f and position increment: %f resulted in %zu samples"
+  RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"),  "Uniform sampling of frame, utilizing orientation increment: %f and position increment: %f resulted in %zu samples"
                    , orient_increment , pos_increment ,  rtn.size());
   return rtn;
 }
@@ -144,7 +168,7 @@ double distance(const std::vector<double> &j1, const std::vector<double> &j2)
   }
   else
   {
-    RCLCPP_WARN(logger, "Unequal size vectors, returning negative distance");
+    RCLCPP_WARN(rclcpp::get_logger("cart_trajectory_pt"), "Unequal size vectors, returning negative distance");
     return -1;
   }
 
@@ -217,6 +241,13 @@ bool CartTrajectoryPt::computeCartesianPoses(EigenSTL::vector_Isometry3d &poses)
   EigenSTL::vector_Isometry3d sampled_wobj_pts = uniform(wobj_pt_, orient_increment_, pos_increment_);
   EigenSTL::vector_Isometry3d sampled_tool_pts = uniform(tool_pt_, orient_increment_, pos_increment_);
 
+  RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"), "Number of sampled_wobj_pts: %zu", sampled_wobj_pts.size());
+  RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"), "Number of sampled_tool_pts: %zu", sampled_tool_pts.size());
+  // for (const auto& pose : sampled_tool_pts)
+  // {
+  //     std::cout << "sampled_tool_pt: \n" << pose.matrix() << std::endl;
+  // }
+
   poses.clear();
   poses.reserve(sampled_wobj_pts.size() * sampled_tool_pts.size());
   for (size_t wobj_pt = 0; wobj_pt < sampled_wobj_pts.size(); ++wobj_pt)
@@ -225,11 +256,17 @@ bool CartTrajectoryPt::computeCartesianPoses(EigenSTL::vector_Isometry3d &poses)
     {
       Eigen::Isometry3d pose =
           wobj_base_.frame * sampled_wobj_pts[wobj_pt] * sampled_tool_pts[tool_pt].inverse() * tool_base_.frame_inv;
-
+      // std::cout << "wobj_base : \n" << wobj_base_.frame.matrix() << std::endl;
+      // std::cout << "sampled_wobj_pts : \n" << sampled_wobj_pts[wobj_pt].matrix() << std::endl;
+      // std::cout << "sampled_tool_pts : \n" << sampled_tool_pts[tool_pt].matrix() << std::endl;
+      // std::cout << "tool_base_ : \n" << tool_base_.frame.matrix() << std::endl;
+      // std::cout << "The combine pose  is =  \n" << pose.matrix() << std::endl;
       poses.push_back(pose);
+      
     }
   }
-
+  RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"), "Number of tolerated poses found for that pose: %zu", poses.size());
+  
   return !poses.empty();
 }
 
@@ -251,16 +288,16 @@ void CartTrajectoryPt::getCartesianPoses(const RobotModel &model, EigenSTL::vect
   }
   else
   {
-    RCLCPP_ERROR(logger, "Failed for find ANY cartesian poses");
+    RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "Failed for find ANY cartesian poses");
   }
 
   if (poses.empty())
   {
-    RCLCPP_WARN(logger, "Failed for find VALID cartesian poses, returning");
+    RCLCPP_WARN(rclcpp::get_logger("cart_trajectory_pt"), "Failed for find VALID cartesian poses, returning");
   }
   else
   {
-    RCLCPP_DEBUG(logger, "Get cartesian poses, sampled: %ld with %ld valid(returned) poses" , all_poses.size() , poses.size());
+    RCLCPP_INFO(rclcpp::get_logger("cart_trajectory_pt"),  "Get cartesian poses, sampled: %ld with %ld valid(returned) poses" , all_poses.size() , poses.size());
   }
 }
 
@@ -271,7 +308,7 @@ bool CartTrajectoryPt::getClosestJointPose(const std::vector<double> &seed_state
 
   if (!model.getFK(seed_state, candidate_pose))
   {
-    RCLCPP_ERROR(logger, "FK failed for seed pose for closest joint pose");
+    RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "FK failed for seed pose for closest joint pose");
     return false;
   }
 
@@ -303,7 +340,7 @@ bool CartTrajectoryPt::getClosestJointPose(const std::vector<double> &seed_state
       {
         solve_ik = true;
         closest_pose_vals[i] = v < lower ? lower : upper;
-        RCLCPP_DEBUG(logger, "Cartesian nominal [%lu] exceeded bounds: [val: %f, lower: %f, upper: %f]", i, v, lower, upper);
+        RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"),  "Cartesian nominal [%lu] exceeded bounds: [val: %f, lower: %f, upper: %f]", i, v, lower, upper);
       }
     }
     else
@@ -311,7 +348,7 @@ bool CartTrajectoryPt::getClosestJointPose(const std::vector<double> &seed_state
       if (std::abs(v - lower) > EQUALITY_TOLERANCE)
       {
         solve_ik = true;
-        RCLCPP_DEBUG(logger, "Cartesian nominals [%lu] differ: [val: %f, lower: %f, upper: %f]", i, v, lower, upper);
+        RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"),  "Cartesian nominals [%lu] differ: [val: %f, lower: %f, upper: %f]", i, v, lower, upper);
         closest_pose_vals[i] = lower;
       }
     }
@@ -324,13 +361,13 @@ bool CartTrajectoryPt::getClosestJointPose(const std::vector<double> &seed_state
         closest_pose_vals[5], descartes_core::utils::EulerConventions::XYZ);
     if (!model.getIK(closest_pose, seed_state, joint_pose))
     {
-      RCLCPP_WARN(logger, "Ik failed on closest pose");
+      RCLCPP_WARN(rclcpp::get_logger("cart_trajectory_pt"), "Ik failed on closest pose");
 
       std::vector<std::vector<double> > joint_poses;
       getJointPoses(model, joint_poses);
       if (joint_poses.size() > 0)
       {
-        RCLCPP_WARN(logger, "Closest cartesian pose not found, returning closest to seed joint pose");
+        RCLCPP_WARN(rclcpp::get_logger("cart_trajectory_pt"), "Closest cartesian pose not found, returning closest to seed joint pose");
 
         double sd = std::numeric_limits<double>::max();
         double d;
@@ -346,7 +383,7 @@ bool CartTrajectoryPt::getClosestJointPose(const std::vector<double> &seed_state
       }
       else
       {
-        RCLCPP_ERROR(logger, "getClosestJointPose failed, no valid joint poses for this point");
+        RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "getClosestJointPose failed, no valid joint poses for this point");
         return false;
       }
 
@@ -371,32 +408,43 @@ bool CartTrajectoryPt::getNominalJointPose(const std::vector<double> &seed_state
 void CartTrajectoryPt::getJointPoses(const RobotModel &model, std::vector<std::vector<double> > &joint_poses) const
 {
   joint_poses.clear();
+  size_t number_of_allowable_poses_to_explore;
 
   EigenSTL::vector_Isometry3d poses;
+  RCLCPP_INFO(rclcpp::get_logger("cart_trajectory_pt"), "Expanding poses to include Tolerated = ...");
   if (computeCartesianPoses(poses))
   {
     poses.reserve(poses.size());
+    number_of_allowable_poses_to_explore = poses.size();
+    RCLCPP_INFO(rclcpp::get_logger("cart_trajectory_pt"), "Attempting to find IK solution for each of the expanded poses ...");
     for (const auto &pose : poses)
     {
-      std::vector<std::vector<double> > local_joint_poses;
+      std::vector<std::vector<double>> local_joint_poses;
       if (model.getAllIK(pose, local_joint_poses))
       {
+        RCLCPP_DEBUG(rclcpp::get_logger("cart_trajectory_pt"), "getAllIK: Successful for pose.");
         joint_poses.insert(joint_poses.end(), local_joint_poses.begin(), local_joint_poses.end());
       }
     }
   }
   else
   {
-    RCLCPP_ERROR(logger, "Failed for find ANY cartesian poses");
+    RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "Failed for find ANY cartesian poses for point with ID : %lu , when expanding the discretization space taking into account the tolerances", getID());
   }
 
   if (joint_poses.empty())
   {
-    RCLCPP_WARN(logger, "Failed for find ANY joint poses, returning");
+    RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "Failed for find ANY joint poses for point with ID : %lu", getID());
+    RCLCPP_ERROR(rclcpp::get_logger("cart_trajectory_pt"), "The nominal pose and the tolerated poses do not have an IK solution");
+  }
+
+  else if(number_of_allowable_poses_to_explore > 2 && joint_poses.size() < 3)
+  {
+    RCLCPP_WARN(rclcpp::get_logger("cart_trajectory_pt"), "Less than 3 joint solutions found for point with ID : %lu , achieving said pose presents dificulties", getID());
   }
   else
   {
-    RCLCPP_DEBUG(logger, "Get joint poses, sampled: %ld with %ld valid(returned) poses" , poses.size() , joint_poses.size());
+    RCLCPP_INFO(rclcpp::get_logger("cart_trajectory_pt"),  "Get joint poses, sampled: %ld tolerated poses with %ld valid(returned) joint configurations" , poses.size() , joint_poses.size());
   }
 }
 

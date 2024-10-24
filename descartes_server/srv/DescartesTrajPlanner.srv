@@ -1,0 +1,60 @@
+# List of poses representing the toolpath that the robot should follow.
+geometry_msgs/Pose[] trajectory_poses
+
+# Orientation offsets in degrees that will be used to create toleranced frames.
+# These offsets represent the allowable deviation in the tool's orientation 
+# from the specified pose in the trajectory. 
+# IT S SYMMETRIC SO THE USER MUST INPUT HALF THE TOTAL OFFSET DESIRED (if the orientation_offset_z is 90, then the allowable tolerated poses 
+# would include anything from orientation_z - 90 to orientation_z + 90)
+float64 orientation_offset_x 
+float64 orientation_offset_y 
+float64 orientation_offset_z 
+float64 position_offset_x 
+float64 position_offset_y 
+float64 position_offset_z 
+
+# The way the time stamps are calculated given a linear velocity impedes the calculation for the first point in the toolpath (since to calculate
+# it we do find the eucledian distance between the points in the path n-1 and n) and thus, it mmust be set manually. By default it is 0.2 sec.
+# If the first pose in the path is the current pose of the robot, then there wouldn't be an issue to set it to 0.0. This is just so that when
+# trying to execute the trajectory, if at time 0 the configuration of the joints is very different, we risk damaging the robot since it will 
+# have to experience really high accelerations (although at least in the yaskawa you cannot execute a traj that the first joint config is not
+# the current state of the robot). 
+float64 time_from_start 
+
+# In principle the tcp is set from the launch params but this allows to modify it between plans
+string tcp_name 
+
+# The increment in degrees that Descartes will use to discretize the toleranced frames.
+# This determines the granularity of the possible orientations within the specified tolerance.
+int32 position_increment
+int32 orientation_increment 
+
+# The desired velocity of the robot in meters per second.
+float64 velocity 
+
+# The robot's joint configuration at the start of the trajectory. The time stmped at which you want to be in that joint pose
+# must be included following the same reasoning as before for time_from_start. 
+float64[] initial_configuration
+float64 time_to_init_config  
+
+# The robot's desired joint configuration at the end of the trajectory.
+float64[] final_configuration
+float64 time_to_final_config
+
+---
+
+# A code indicating the result of the trajectory computation.
+int32 result_code
+
+# The resulting joint trajectory that the robot should execute to follow the specified toolpath.
+trajectory_msgs/JointTrajectory joint_solutions 
+
+
+############################ result_code cases ############################
+
+## -1: Failed to initialize robot model.
+## -2: Failed to initialize planner
+## -3: Could not solve for a valid path
+## -4: Could not retrieve path
+## -5: Unable to convert Descartes trajectory to joint points
+## -6: Could not solve the IK of full trajectory, some points in collision or out of reach, passing partial trajectory

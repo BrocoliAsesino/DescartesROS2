@@ -18,8 +18,10 @@
   <!-- <depend>boost</depend> -->
   <depend>moveit_core</depend>
   <depend>rclcpp</depend>
-  <depend>cmake_modules</depend>
+  <!-- <depend>cmake_modules</depend> -->
   <depend>eigen</depend>
+
+
 
   <!-- Additional dependencies and other tags can be added as needed -->
 

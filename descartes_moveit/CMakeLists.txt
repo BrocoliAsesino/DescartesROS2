@@ -8,26 +8,16 @@ add_compile_options(-std=c++17 -Wall -Wextra)
 find_package(descartes_trajectory REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(descartes_core REQUIRED)
-find_package(moveit_core REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(ament_cmake_auto REQUIRED)
+find_package(moveit_core REQUIRED)
+find_package(moveit_ros_planning REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
 
 
 ament_auto_find_build_dependencies()
-#ament_auto_include_directories()
 
-
-
-# Include directories
-include_directories(
-  include
-  #${Boost_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
-  ${descartes_trajectory_INCLUDE_DIRS}
-  /home/agonzalezhernandez/descartesROS2_ws/install/descartes_trajectory/include
-
-)
 
 # Descartes MoveIt library
 add_library(${PROJECT_NAME}
@@ -35,16 +25,20 @@ add_library(${PROJECT_NAME}
   src/moveit_state_adapter.cpp
   src/seed_search.cpp
 )
+
+target_include_directories(${PROJECT_NAME}
+    PUBLIC include)
+
 ament_target_dependencies(${PROJECT_NAME}
+  Eigen3
   descartes_core
   descartes_trajectory
-  moveit_core
+  moveit_ros_planning
+  moveit_ros_planning_interface
 )
 
-target_link_libraries(${PROJECT_NAME}
-  descartes_trajectory
- )
-# Install targets
+
+#### Install targets ####
 install(
   TARGETS ${PROJECT_NAME}
   LIBRARY DESTINATION lib
@@ -62,12 +56,15 @@ install(FILES moveit_adapter_plugins.xml
 
 
 # Export dependencies
-ament_export_dependencies(ament_cmake)
-ament_export_dependencies(descartes_core)
-ament_export_dependencies(descartes_trajectory)
-ament_export_dependencies(moveit_core)
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
+ament_export_dependencies(
+  Eigen3
+  descartes_core
+  descartes_trajectory
+  moveit_ros_planning
+  moveit_ros_planning_interface
+)
 
 ament_package()
 

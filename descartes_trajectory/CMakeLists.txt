@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 project(descartes_trajectory)
 
-set(CMAKE_CXX_STANDARD 17)
 
-add_compile_options(-Wall -Wextra)
+
+add_compile_options(-std=c++17 -Wall -Wextra)
 
 # Find required packages
 find_package(ament_cmake REQUIRED)
@@ -12,20 +12,20 @@ find_package(moveit_core REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-# Include directories
-include_directories(
-  include
-  ${EIGEN3_INCLUDE_DIRS}
-)
 
-# Create the library
+#### Create library target ####
 add_library(${PROJECT_NAME}
   src/axial_symmetric_pt.cpp
   src/cart_trajectory_pt.cpp
   src/joint_trajectory_pt.cpp
 )
 
+#### Include Header files to the library target ####
+target_include_directories(${PROJECT_NAME}
+    PUBLIC include)
+
 ament_target_dependencies(${PROJECT_NAME}
+  Eigen3
   descartes_core
   moveit_core
   rclcpp
@@ -38,9 +38,19 @@ install(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY include/
-  DESTINATION include
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION include/${PROJECT_NAME}
 )
+
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
+ament_export_dependencies(
+  rclcpp
+  moveit_core
+  descartes_core
+  Eigen3
+)
+
 
 # If testing is enabled
 if(BUILD_TESTING)
