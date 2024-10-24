@@ -41,7 +41,7 @@
 namespace descartes_moveit
 {
 
-auto logger2 = rclcpp::get_logger("descartes_moveit2");
+extern rclcpp::Logger logger_moveit;
 namespace seed
 {
 /**
@@ -81,6 +81,7 @@ inline std::vector<std::vector<double> > findIndustrialSixDOFSeeds(moveit::core:
  */
 std::vector<std::vector<double> > findRandomSeeds(moveit::core::RobotState& state, const std::string& group_name,
                                                   unsigned n);
+
 
 }  // end namespace seed
 }  // end namespace descartes_moveit

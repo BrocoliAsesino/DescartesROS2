@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>descartes_utilities</name>
+  <version>0.0.1</version>
+  <description>
+    This package contains helper routines for working with the Descartes motion planning library
+    that ease practical use, but do fit cleanly into the core library. This includes conversions
+    to ROS trajectories, and similar operations.
+  </description>
+
+  <maintainer email="Jmeyer@swri.org">Jonathan Meyer</maintainer>
+
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  
+  <depend>descartes_core</depend>
+  <depend>descartes_trajectory</depend>
+  <depend>trajectory_msgs</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+</package>

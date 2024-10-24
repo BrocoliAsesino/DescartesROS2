@@ -67,7 +67,7 @@ struct TolerancedJointValue
 class JointTrajectoryPt : public descartes_core::TrajectoryPt
 {
 public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;  // TODO is this needed when Frame already has it?
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW  // TODO is this needed when Frame already has it?
 public:
   /**
     @brief All frames initialized to Identity, joint

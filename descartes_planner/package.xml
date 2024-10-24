@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>descartes_planner</name>
+  <version>0.0.1</version>
+  <description>The descartes_planner package</description>
+
+  <maintainer email="jnicho@swri.org">Jorge Nicho</maintainer>
+  <maintainer email="jonathan.meyer@swri.org">Jonathan Meyer</maintainer>
+  <maintainer email="sedwards@swri.org">Shaun Edwards</maintainer>
+
+  <license>Apache2.0</license>
+
+  <author email="jnicho@swri.org">Jorge Nicho</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>descartes_core</depend>
+  <depend>descartes_trajectory</depend>
+  <depend>boost</depend>
+  <depend>rclcpp</depend>
+  <depend>pluginlib</depend>
+  <depend>eigen</depend>
+
+  <export>
+    <!-- Update this if you have any ROS 2-specific export tags -->
+  </export>
+</package>
+
+
+  <!-- <export>
+    <descartes_core plugin="${prefix}/descartes_planner_plugins.xml"/>
+    <rosdoc config="rosdoc.yaml"/>
+  </export>
+</package> -->

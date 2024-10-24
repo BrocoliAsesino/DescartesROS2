@@ -22,6 +22,7 @@
 // TODO: The include below picks up Eigen::Isometry3d, but there is probably a better way
 #include <moveit/kinematic_constraints/kinematic_constraint.h>
 #include "descartes_core/utils.h"
+#include <rclcpp/rclcpp.hpp>
 
 namespace descartes_core
 {
@@ -109,6 +110,21 @@ public:
   virtual bool initialize(const std::string &robot_description, const std::string &group_name,
                           const std::string &world_frame, const std::string &tcp_frame) = 0;
 
+
+
+
+// ======================================================================================================================================
+//   The one on top is pure virtual, the one on the bottom is implemented here so that any classes that inherit from it are not forced to              
+//   implemented and thus don't become abstract classes!
+
+  virtual bool initialize(const rclcpp::Node::SharedPtr& /*node*/, 
+                          const std::string& /*robot_description*/, 
+                          const std::string& /*group_name*/,
+                          const std::string& /*world_frame*/, 
+                          const std::string& /*tcp_frame*/){return true;}
+
+// ======================================================================================================================================
+
   /**
    * @brief Enables collision checks
    * @param check_collisions enables or disables collisions
@@ -144,13 +160,31 @@ public:
 
   virtual bool isValidMove(const double* s, const double* f, double dt) const = 0;
 
+
+
+  const moveit::core::RobotModelConstPtr get_moveit_robot_model(){
+    return moveit_robot_model_;
+  }
+
+  const moveit::core::JointModelGroup* robot_modelgetJointModelGroup() const
+  {
+      return robot_model_joint_group_;
+  }
+
+  
+moveit::core::RobotModelConstPtr moveit_robot_model_;
+const moveit::core::JointModelGroup *robot_model_joint_group_;
+std::string tcp_;
+
 protected:
   RobotModel() : check_collisions_(false)
   {
   }
 
   bool check_collisions_;
+  
 };
+
 
 }  // descartes_core
 

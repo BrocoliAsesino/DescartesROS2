@@ -30,8 +30,27 @@ public:
   {
   }
 
-  virtual bool initialize(const rclcpp::Node::SharedPtr& node, const std::string& robot_description, const std::string& group_name,
+// ======================================================================================================================================
+//   We keep this method since it has the same signature than the one in the base class RobotModel. Cannot remove since the class inherits
+//   from MoveitStateAdapter that in turns inherits from RobotModel and in there the initialize method is pure virtual, removing it would 
+//   make this class abstract.
+
+  virtual bool initialize(const std::string& robot_description, const std::string& group_name,
                           const std::string& world_frame, const std::string& tcp_frame);
+
+
+// ======================================================================================================================================
+//   New initialize method to include the pointer to a rclcpp::Node so that the RobotModelLoader works. In Moveit2 the RobotModelLoader               
+//   takes an extra parameter (rclcpp::Node) to load the robot model than it did in Moveit. Implemented in MoveitStateAdapter. 
+//   This method is overridden since it was implemented in the base class RobotModel. 
+
+  virtual bool initialize(const rclcpp::Node::SharedPtr& node, 
+                          const std::string& robot_description, 
+                          const std::string& group_name,
+                          const std::string& world_frame, 
+                          const std::string& tcp_frame) override;
+// ======================================================================================================================================
+
 
   virtual bool getAllIK(const Eigen::Isometry3d& pose, std::vector<std::vector<double> >& joint_poses) const;
 
@@ -45,9 +64,11 @@ public:
    * it also recomputes the transformations to/from the IKFast reference frames.
    */
   void setState(const moveit::core::RobotState& state);
+  void updateTcpFrame(std::string& tool_frame_, std::string& ikfast_tool_frame);
 
 protected:
-  bool computeIKFastTransforms();
+  bool computeIKFastTransforms(const rclcpp::Node::SharedPtr& node);
+  rclcpp::Node::SharedPtr  node_ = nullptr;
 
   /**
    * The IKFast implementation commonly solves between 'base_link' of a robot

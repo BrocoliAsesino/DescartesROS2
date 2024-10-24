@@ -31,6 +31,7 @@ typedef std::vector<JointConfig> JointConfigVec;
  * @brief Forward kinematics helper
  */
 
+// rclcpp::Logger descartes_moveit::logger_moveit = rclcpp::get_logger("descartes_moveit2");
 
 bool doFK(moveit::core::RobotState& state, const moveit::core::JointModelGroup* group, const std::string& tool,
           const JointConfig& joint_pose, Eigen::Isometry3d& result)
@@ -38,13 +39,13 @@ bool doFK(moveit::core::RobotState& state, const moveit::core::JointModelGroup* 
   state.setJointGroupPositions(group, joint_pose);
   if (!state.knowsFrameTransform(tool))
   {
-    RCLCPP_WARN( logger2, "No transform to this tool frame");
+    RCLCPP_WARN(rclcpp::get_logger("seed_search"), "No transform to this tool frame");
     return false;
   }
 
   if (!state.satisfiesBounds())
   {
-    RCLCPP_WARN( logger2, "Joint angles do not satisfy robot bounds");
+    RCLCPP_WARN( rclcpp::get_logger("seed_search"), "Joint angles do not satisfy robot bounds");
     return false;
   }
 
@@ -145,7 +146,7 @@ JointConfigVec findSeedStatesForPair(moveit::core::RobotState& state, const std:
   for (const JointModel* model : active_joints)
   {
     if (model->getType() != JointModel::REVOLUTE)
-      RCLCPP_WARN(logger2, "Joint does not appear to be revolute, JOINT: " , model->getName() );
+      RCLCPP_WARN(rclcpp::get_logger("seed_search"), "Joint does not appear to be revolute, JOINT: %s" , model->getName().c_str() );
   }
 
   // compute random starting values for all joints
@@ -173,14 +174,14 @@ JointConfigVec findSeedStatesForPair(moveit::core::RobotState& state, const std:
     Eigen::Isometry3d target_pose;
     if (!doFK(state, group, tool_frame, round_ik, target_pose))
     {
-      RCLCPP_DEBUG(logger2, "No FK for pose %zu ", i);
+      RCLCPP_DEBUG(rclcpp::get_logger("seed_search"), "No FK for pose %zu ", i);
       continue;
     }
 
     // Check to make sure we're not in a singularity
     if (isSingularity(state, group))
     {
-      RCLCPP_DEBUG(logger2, "Pose %zu at singularity." , i );
+      RCLCPP_DEBUG(rclcpp::get_logger("seed_search"), "Pose %zu at singularity." , i );
       continue;
     }
 
@@ -236,7 +237,7 @@ JointConfigVec findSeedStatesForPair(moveit::core::RobotState& state, const std:
       }
     }
 
-    RCLCPP_DEBUG(logger2, "Calculated %zu unique IK states this round" , this_round_iks.size() );
+    RCLCPP_DEBUG(rclcpp::get_logger("seed_search"), "Calculated %zu unique IK states this round" , this_round_iks.size() );
   }  // outer loop end
 
   // Consolidate set into vector for the result

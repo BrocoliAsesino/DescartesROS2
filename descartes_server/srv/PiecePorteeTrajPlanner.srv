@@ -1,0 +1,48 @@
+# List of poses representing the toolpath wrt to the CAD's reference frame that the robot should follow.
+geometry_msgs/Pose[] trajectory_poses
+
+# Necessary transforms: 
+# The stationary_pt represent the fixed pose where we want to place each of our toolpath points.
+string stationary_pt_link
+geometry_msgs/Transform world_to_stationary_pt
+# The transform from where the CAD part is gripped to its reference frame
+geometry_msgs/Transform gripping_pose_to_cad_frame
+
+# Orientation offsets in degrees that will be used to create toleranced frames.
+# These offsets represent the allowable deviation in the tool's orientation 
+# from the specified pose in the trajectory.
+float64 orientation_offset_x 
+float64 orientation_offset_y 
+float64 orientation_offset_z 
+float64 position_offset_x 
+float64 position_offset_y 
+float64 position_offset_z 
+
+# The increment in degrees that Descartes will use to discretize the toleranced frames.
+# This determines the granularity of the possible orientations within the specified tolerance.
+int32 position_increment
+int32 orientation_increment 
+
+# The desired velocity of the robot in meters per second.
+float64 velocity 
+
+# The robot's joint configuration at the start of the trajectory.
+float64[] initial_configuration
+
+# The robot's desired joint configuration at the end of the trajectory.
+float64[] final_configuration
+---
+# A code indicating the result of the trajectory computation.
+int32 result_code
+
+# The resulting joint trajectory that the robot should execute to follow the specified toolpath.
+trajectory_msgs/JointTrajectory joint_solutions 
+
+
+############################ result_code cases ############################
+
+## -1: Failed to initialize robot model.
+## -2: Failed to initialize planner
+## -3: Could not solve for a valid path
+## -4: Could not retrieve path
+## -5: Unable to convert Descartes trajectory to joint points
